@@ -4,11 +4,11 @@ const app = express();
 const PORT = 8080;
 app.use("/app", middlewareMetricsInc);
 app.use("/app", express.static("./src/app"));
-app.use("/metrics", middlewareLogMetrics);
-app.use("/reset", middlewareResetMetrics);
+app.use("/admin/metrics", middlewareLogMetrics);
+app.use("/admin/reset", middlewareResetMetrics);
 app.use(middlewareLogResponses);
-app.get("/healthz", (req, res) => {
-    res.set("Content-Type", "text/plain; charset=utf-8").send('OK');
+app.get("/api/healthz", (req, res) => {
+    res.set("Content-Type: text/plain; charset=utf-8").send('OK');
 });
 app.listen(PORT, () => {
     console.log(`Server is running at https://localhost:${PORT}`);
@@ -29,9 +29,16 @@ export async function middlewareMetricsInc(req, res, next) {
     next();
 }
 export async function middlewareLogMetrics(req, res) {
-    res.set("Content-Type", "text/plain; charset=utf-8").send(`Hits: ${config.fileserverHits}`);
+    res.set("Content-Type: text/plain; charset=utf-8").send(`
+        <html>
+            <body>
+                <h1>Welcome, Chirpy Admin</h1>
+                <p>Chirpy has been visited ${config.fileserverHits} times!</p>
+            </body>
+        </html>
+    `);
 }
 export async function middlewareResetMetrics(req, res, next) {
     config.fileserverHits = 0;
-    res.set("Content-Type", "text/plain; charset=utf-8").send("Metrics reset!");
+    res.set("Content-Type: text/plain; charset=utf-8").send("Metrics reset!");
 }
