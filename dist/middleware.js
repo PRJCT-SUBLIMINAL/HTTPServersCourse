@@ -1,26 +1,22 @@
-import {ErrorRequestHandler, Request, Response, NextFunction} from "express";
-import {BadRequestError, UnauthorizedError, ForbiddenError, NotFoundError, EnvironmentError} from "./classes.js";
-import {config} from "./config.js";
+import { BadRequestError, UnauthorizedError, ForbiddenError, NotFoundError } from "./classes.js";
+import { config } from "./config.js";
 import { deleteAllUsers } from "./db/queries/users.js";
-
 // Middleware //
-
-export async function middlewareLogResponses(req: Request, res: Response, next: NextFunction) {
-    res.on("finish", ()=>{
+export async function middlewareLogResponses(req, res, next) {
+    res.on("finish", () => {
         const statusCode = res.statusCode;
         if (statusCode < 200 || statusCode >= 300) {
             console.log(`[NON-OK] ${req.method} ${req.url} - Status: ${statusCode}`);
-        };
+        }
+        ;
     });
     next();
 }
-
-export async function middlewareMetricsInc(req: Request, res: Response, next: NextFunction) {
+export async function middlewareMetricsInc(req, res, next) {
     config.api.fileServerHits++;
     next();
 }
-
-export async function middlewareLogMetrics(req: Request, res: Response) {
+export async function middlewareLogMetrics(req, res) {
     res.set("Content-Type: text/plain; charset=utf-8").send(`
         <html>
             <body>
@@ -30,31 +26,30 @@ export async function middlewareLogMetrics(req: Request, res: Response) {
         </html>
     `);
 }
-
-export async function middlewareResetMetrics(req: Request, res: Response, next: NextFunction) {
+export async function middlewareResetMetrics(req, res, next) {
     if (config.api.platform !== "dev") {
         throw new ForbiddenError("You are not in a development environment!");
     }
-
     await deleteAllUsers();
-
     config.api.fileServerHits = 0;
-    
     res.set("Content-Type: text/plain; charset=utf-8").send("Metrics reset!");
 }
-
-export const middlewareErrorHandler: ErrorRequestHandler = (err, req, res, next) => {
+export const middlewareErrorHandler = (err, req, res, next) => {
     console.log(err);
-    const body = { error: err.message }
+    const body = { error: err.message };
     if (err instanceof BadRequestError) {
         res.status(400).json(body);
-    } else if (err instanceof UnauthorizedError) {
+    }
+    else if (err instanceof UnauthorizedError) {
         res.status(401).json(body);
-    } else if (err instanceof ForbiddenError) {
+    }
+    else if (err instanceof ForbiddenError) {
         res.status(403).json(body);
-    } else if (err instanceof NotFoundError) {
+    }
+    else if (err instanceof NotFoundError) {
         res.status(404).json(body);
-    } else {
+    }
+    else {
         res.status(500).json({ error: "Something went wrong on our end" });
     }
-}
+};
