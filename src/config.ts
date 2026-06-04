@@ -3,7 +3,7 @@ import {MigrationConfig} from "drizzle-orm/migrator";
 
 process.loadEnvFile();
 
-function envOrThrow(key: string) {
+export function envOrThrow(key: string) {
     const value = process.env[key];
     if (!value) throw new EnvironmentError("Can't find DB URL?!");
     return value;
