@@ -5,7 +5,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 // My Imports //
 import { createChirp, getAllChirps } from "./db/queries/chirps.js";
 import { createUser } from "./db/queries/users.js";
-import { middlewareMetricsInc, middlewareLogMetrics, middlewareResetMetrics, middlewareLogResponses, middlewareErrorHandler } from "./middleware.js";
+import { middlewareMetricsInc, middlewareLogMetrics, middlewareResetMetrics, middlewareLogResponses, middlewareErrorHandler, middlewareGetChirp } from "./middleware.js";
 import { BadRequestError } from "./classes.js";
 import { config } from "./config.js";
 // Init //
@@ -74,6 +74,9 @@ app.get("/api/chirps", async (req, res) => {
     }
     ;
     res.status(200).json(chirps);
+});
+app.get("/api/chirps/:chirpId", async (req, res, next) => {
+    Promise.resolve(middlewareGetChirp(req, res)).catch(next);
 });
 app.post("/api/users", async (req, res) => {
     const body = req.body;

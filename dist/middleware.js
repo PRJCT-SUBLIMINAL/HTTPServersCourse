@@ -1,6 +1,7 @@
 import { BadRequestError, UnauthorizedError, ForbiddenError, NotFoundError } from "./classes.js";
 import { config } from "./config.js";
 import { deleteAllUsers } from "./db/queries/users.js";
+import { getChirp } from "./db/queries/chirps.js";
 // Middleware //
 export async function middlewareLogResponses(req, res, next) {
     res.on("finish", () => {
@@ -34,7 +35,20 @@ export async function middlewareResetMetrics(req, res, next) {
     config.api.fileServerHits = 0;
     res.set("Content-Type: text/plain; charset=utf-8").send("Metrics reset!");
 }
-export const middlewareErrorHandler = (err, req, res, next) => {
+export async function middlewareGetChirp(req, res) {
+    if (!req.params) {
+        throw new BadRequestError("No chirp ID?");
+    }
+    ;
+    const chirpId = req.params.chirpId;
+    if (!chirpId)
+        return;
+    const chirp = await getChirp(chirpId);
+    if (!chirp)
+        throw new NotFoundError("Chirp not found!");
+    res.status(200).json(chirp);
+}
+export const middlewareErrorHandler = (err, req, res) => {
     console.log(err);
     const body = { error: err.message };
     if (err instanceof BadRequestError) {
