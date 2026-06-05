@@ -5,9 +5,10 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { drizzle } from "drizzle-orm/postgres-js";
 
 // My Imports //
+import {hashPassword} from "./auth.js";
 import {createChirp, getAllChirps} from "./db/queries/chirps.js";
 import {createUser} from "./db/queries/users.js";
-import {middlewareMetricsInc, middlewareLogMetrics, middlewareResetMetrics, middlewareLogResponses, middlewareErrorHandler, middlewareGetChirp} from "./middleware.js";
+import {middlewareMetricsInc, middlewareLogMetrics, middlewareResetMetrics, middlewareLogResponses, middlewareErrorHandler, middlewareGetChirp, middlewareGetUser} from "./middleware.js";
 import {BadRequestError, UnauthorizedError, ForbiddenError, NotFoundError} from "./classes.js";
 import {config} from "./config.js";
 
@@ -42,6 +43,8 @@ app.get("/api/healthz", (req: Request, res: Response) => {
     res.set("Content-Type: text/plain; charset=utf-8").send('OK');
 });
 
+
+// Chirps //
 async function validateChirp(req: Request, res: Response) {
     const body = req.body.body
     if (!body) {
@@ -87,6 +90,8 @@ app.get("/api/chirps/:chirpId", async (req: Request, res: Response, next: NextFu
     Promise.resolve(middlewareGetChirp(req, res)).catch(next);
 });
 
+// Users
+
 app.post("/api/users", async (req: Request, res: Response)=>{
     const body = req.body;
     if (!body) {
@@ -94,13 +99,26 @@ app.post("/api/users", async (req: Request, res: Response)=>{
         return;
     };
 
+    if (!body.password) {
+        throw new BadRequestError("No password provided");
+    };
+
     if (!body.email.includes("@")) {
         throw new BadRequestError("Email format needs an @ symbol.");
     };
 
-    const user = await createUser({ "email": body.email });
-    res.status(201).json(user);
-})
+    body.password = await hashPassword(body.password);
+
+    const user = await createUser({ "email": body.email, "hashed_password": body.password });
+
+    if (!user) throw new BadRequestError("Can't create user");
+
+    const { hashed_password, ...userResponse } = user; // This is how to strip a field from an object.
+
+    res.status(201).json(userResponse); // Send the stripped object back to the client
+});
+
+app.post(("/api/login"), middlewareGetUser);
 
 app.use(middlewareErrorHandler);
 

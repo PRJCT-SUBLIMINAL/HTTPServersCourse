@@ -1,8 +1,9 @@
 import {ErrorRequestHandler, Request, Response, NextFunction} from "express";
 import {BadRequestError, UnauthorizedError, ForbiddenError, NotFoundError, EnvironmentError} from "./classes.js";
 import {config} from "./config.js";
-import { deleteAllUsers } from "./db/queries/users.js";
+import { deleteAllUsers, getUser } from "./db/queries/users.js";
 import { getChirp } from "./db/queries/chirps.js";
+import { checkPasswordHash } from "./auth.js";
 
 // Middleware //
 
@@ -59,7 +60,21 @@ export async function middlewareGetChirp(req: Request, res: Response) {
     res.status(200).json(chirp);
 }
 
-export const middlewareErrorHandler: ErrorRequestHandler = (err, req, res) => {
+export async function middlewareGetUser(req: Request, res: Response) {
+    try {
+        const user = await getUser(req.body.email);
+        const hashedPassword = user.hashed_password
+        const isValid = await checkPasswordHash(req.body.password, hashedPassword)
+        if (!isValid) throw new BadRequestError("invalid password");
+
+        const { hashed_password, ...userResponse } = user;
+        res.status(200).json(userResponse);
+    } catch {
+        throw new UnauthorizedError("incorrect email or password");
+    }
+}
+
+export const middlewareErrorHandler: ErrorRequestHandler = (err, req, res, next) => {
     console.log(err);
     const body = { error: err.message }
     if (err instanceof BadRequestError) {
