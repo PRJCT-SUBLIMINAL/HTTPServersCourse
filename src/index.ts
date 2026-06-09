@@ -8,7 +8,19 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import {hashPassword, getBearerToken, validateJWT} from "./auth.js";
 import {createChirp, getAllChirps} from "./db/queries/chirps.js";
 import {createUser} from "./db/queries/users.js";
-import {middlewareMetricsInc, middlewareLogMetrics, middlewareResetMetrics, middlewareLogResponses, middlewareErrorHandler, middlewareGetChirp, middlewareGetUser} from "./middleware.js";
+
+import {
+    middlewareMetricsInc,
+    middlewareLogMetrics,
+    middlewareResetMetrics,
+    middlewareLogResponses,
+    middlewareErrorHandler,
+    middlewareGetChirp,
+    middlewareGetUser,
+    middlewareRefreshUser,
+    middlewareRevokeUser
+} from "./middleware.js";
+
 import {BadRequestError, UnauthorizedError, ForbiddenError, NotFoundError} from "./classes.js";
 import {config} from "./config.js";
 
@@ -122,6 +134,10 @@ app.post("/api/users", async (req: Request, res: Response)=>{
 });
 
 app.post(("/api/login"), middlewareGetUser);
+
+app.post("/api/refresh", middlewareRefreshUser);
+
+app.post("/api/revoke", middlewareRevokeUser);
 
 app.use(middlewareErrorHandler);
 

@@ -3,8 +3,8 @@ import {BadRequestError, UnauthorizedError, ForbiddenError, NotFoundError, Envir
 import {config} from "./config.js";
 import { deleteAllUsers, getUser } from "./db/queries/users.js";
 import { getChirp } from "./db/queries/chirps.js";
-import {storeRefreshToken} from "./db/queries/refreshTokens.js";
-import { checkPasswordHash, makeJWT, makeRefreshToken } from "./auth.js";
+import {storeRefreshToken, findRefreshToken, getUserFromRefreshToken, revokeRefreshToken} from "./db/queries/refreshTokens.js";
+import { checkPasswordHash, makeJWT, makeRefreshToken, getBearerToken } from "./auth.js";
 
 // Middleware //
 
@@ -77,6 +77,36 @@ export async function middlewareGetUser(req: Request, res: Response) {
     } catch {
         throw new UnauthorizedError("incorrect email or password");
     }
+}
+
+export async function middlewareRefreshUser(req: Request, res: Response) {
+    const refreshToken = getBearerToken(req);
+    const foundRefreshToken = await findRefreshToken(refreshToken);
+    if (!foundRefreshToken || (foundRefreshToken.expiresAt < new Date()) || foundRefreshToken.revokedAt) {
+        throw new UnauthorizedError("Can't find refresh token");
+    }
+
+    const userId = await getUserFromRefreshToken(refreshToken);
+    if (!userId) {
+        throw new UnauthorizedError("User not authorized.")
+    }
+    const token = makeJWT(userId, 3600, config.api.jwtSecret);
+
+    res.status(200).json({token});
+}
+
+export async function middlewareRevokeUser(req: Request, res: Response) {
+    const refreshToken = getBearerToken(req);
+    const foundRefreshToken = await findRefreshToken(refreshToken);
+    
+    if (!foundRefreshToken || (foundRefreshToken.expiresAt < new Date()) || foundRefreshToken.revokedAt) {
+        throw new UnauthorizedError("Can't find refresh token");
+    }
+
+    const token = await revokeRefreshToken(refreshToken);
+    if (!token) throw new UnauthorizedError("Unauthorized user.");
+
+    res.status(204).send();
 }
 
 export const middlewareErrorHandler: ErrorRequestHandler = (err, req, res, next) => {

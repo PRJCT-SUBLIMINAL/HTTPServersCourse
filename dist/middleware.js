@@ -2,7 +2,8 @@ import { BadRequestError, UnauthorizedError, ForbiddenError, NotFoundError } fro
 import { config } from "./config.js";
 import { deleteAllUsers, getUser } from "./db/queries/users.js";
 import { getChirp } from "./db/queries/chirps.js";
-import { checkPasswordHash, makeJWT } from "./auth.js";
+import { storeRefreshToken, findRefreshToken, getUserFromRefreshToken, revokeRefreshToken } from "./db/queries/refreshTokens.js";
+import { checkPasswordHash, makeJWT, makeRefreshToken, getBearerToken } from "./auth.js";
 // Middleware //
 export async function middlewareLogResponses(req, res, next) {
     res.on("finish", () => {
@@ -56,15 +57,39 @@ export async function middlewareGetUser(req, res) {
         const isValid = await checkPasswordHash(req.body.password, hashedPassword);
         if (!isValid)
             throw new BadRequestError("invalid password");
-        const requestedExpiry = req.body.expiresInSeconds ?? 3600; // 1 hour
-        const expiresIn = Math.min(requestedExpiry, 3600);
-        const token = makeJWT(user.id, expiresIn, config.api.jwtSecret);
+        const token = makeJWT(user.id, 3600, config.api.jwtSecret);
+        const refreshToken = makeRefreshToken();
+        await storeRefreshToken(refreshToken, user.id, 3600 * 24 * 60);
         const { hashed_password, ...userResponse } = user;
-        res.status(200).json({ ...userResponse, token });
+        res.status(200).json({ ...userResponse, token, refreshToken });
     }
     catch {
         throw new UnauthorizedError("incorrect email or password");
     }
+}
+export async function middlewareRefreshUser(req, res) {
+    const refreshToken = getBearerToken(req);
+    const foundRefreshToken = await findRefreshToken(refreshToken);
+    if (!foundRefreshToken || (foundRefreshToken.expiresAt < new Date()) || foundRefreshToken.revokedAt) {
+        throw new UnauthorizedError("Can't find refresh token");
+    }
+    const userId = await getUserFromRefreshToken(refreshToken);
+    if (!userId) {
+        throw new UnauthorizedError("User not authorized.");
+    }
+    const token = makeJWT(userId, 3600, config.api.jwtSecret);
+    res.status(200).json({ token });
+}
+export async function middlewareRevokeUser(req, res) {
+    const refreshToken = getBearerToken(req);
+    const foundRefreshToken = await findRefreshToken(refreshToken);
+    if (!foundRefreshToken || (foundRefreshToken.expiresAt < new Date()) || foundRefreshToken.revokedAt) {
+        throw new UnauthorizedError("Can't find refresh token");
+    }
+    const token = await revokeRefreshToken(refreshToken);
+    if (!token)
+        throw new UnauthorizedError("Unauthorized user.");
+    res.status(204).send();
 }
 export const middlewareErrorHandler = (err, req, res, next) => {
     console.log(err);

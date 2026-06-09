@@ -1,5 +1,7 @@
 import * as argon2 from "argon2";
 import jwt from "jsonwebtoken";
+import * as crypto from "crypto";
+import { UnauthorizedError } from "./classes.js";
 export async function hashPassword(password) {
     const hashedPassword = await argon2.hash(password);
     if (!hashedPassword)
@@ -32,7 +34,7 @@ export function validateJWT(tokenString, secret) {
         decodedPassword = jwt.verify(tokenString, secret);
     }
     catch {
-        throw new Error("Unable to validate password");
+        throw new UnauthorizedError("Unable to validate password");
     }
     if (!decodedPassword.sub)
         throw new Error("No user ID in token");
@@ -42,6 +44,11 @@ export function getBearerToken(req) {
     const token = req.get("Authorization");
     if (!token)
         throw new Error("Failed to authorize");
-    const strippedToken = token.replace("Bearer ", "");
-    return strippedToken.trim();
+    const strippedToken = token.replace("Bearer ", "").trim();
+    return strippedToken;
+}
+export function makeRefreshToken() {
+    const randomBytes = crypto.randomBytes(32);
+    const hexString = randomBytes.toString("hex");
+    return hexString;
 }

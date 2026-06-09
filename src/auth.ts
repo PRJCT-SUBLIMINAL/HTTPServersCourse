@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import * as crypto from "crypto";
 import type {JwtPayload} from "jsonwebtoken";
 import type {Request} from "express";
+import { UnauthorizedError } from "./classes.js";
 
 export async function hashPassword(password: string): Promise<string> {
     const hashedPassword = await argon2.hash(password);
@@ -40,7 +41,7 @@ export function validateJWT(tokenString: string, secret: string): string {
     try {
         decodedPassword = jwt.verify(tokenString, secret) as JwtPayload;
     } catch {
-        throw new Error("Unable to validate password");
+        throw new UnauthorizedError("Unable to validate password");
     }
 
     if (!decodedPassword.sub) throw new Error("No user ID in token");
