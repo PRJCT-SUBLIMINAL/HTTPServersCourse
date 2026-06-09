@@ -29,6 +29,13 @@
       "when": 1780604636791,
       "tag": "0003_stale_jackpot",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1780938125389,
+      "tag": "0004_lean_lady_ursula",
+      "breakpoints": true
     }
   ]
 }

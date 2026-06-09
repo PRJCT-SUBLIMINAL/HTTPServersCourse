@@ -5,7 +5,7 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { drizzle } from "drizzle-orm/postgres-js";
 
 // My Imports //
-import {hashPassword} from "./auth.js";
+import {hashPassword, getBearerToken, validateJWT} from "./auth.js";
 import {createChirp, getAllChirps} from "./db/queries/chirps.js";
 import {createUser} from "./db/queries/users.js";
 import {middlewareMetricsInc, middlewareLogMetrics, middlewareResetMetrics, middlewareLogResponses, middlewareErrorHandler, middlewareGetChirp, middlewareGetUser} from "./middleware.js";
@@ -72,7 +72,10 @@ app.post("/api/chirps", async (req: Request, res: Response)=>{
     if (body === undefined) {
         throw new BadRequestError("Body is undefined");
     };
-    const chirp = await createChirp({ body: body, userId: req.body.userId});
+    const token = getBearerToken(req);
+    const userId = validateJWT(token, config.api.jwtSecret);
+
+    const chirp = await createChirp({ body, userId});
     res.status(201).json(chirp);
 });
 

@@ -2,7 +2,7 @@ import { BadRequestError, UnauthorizedError, ForbiddenError, NotFoundError } fro
 import { config } from "./config.js";
 import { deleteAllUsers, getUser } from "./db/queries/users.js";
 import { getChirp } from "./db/queries/chirps.js";
-import { checkPasswordHash } from "./auth.js";
+import { checkPasswordHash, makeJWT } from "./auth.js";
 // Middleware //
 export async function middlewareLogResponses(req, res, next) {
     res.on("finish", () => {
@@ -56,8 +56,11 @@ export async function middlewareGetUser(req, res) {
         const isValid = await checkPasswordHash(req.body.password, hashedPassword);
         if (!isValid)
             throw new BadRequestError("invalid password");
+        const requestedExpiry = req.body.expiresInSeconds ?? 3600; // 1 hour
+        const expiresIn = Math.min(requestedExpiry, 3600);
+        const token = makeJWT(user.id, expiresIn, config.api.jwtSecret);
         const { hashed_password, ...userResponse } = user;
-        res.status(200).json(userResponse);
+        res.status(200).json({ ...userResponse, token });
     }
     catch {
         throw new UnauthorizedError("incorrect email or password");

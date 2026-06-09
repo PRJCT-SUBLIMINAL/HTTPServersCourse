@@ -3,7 +3,8 @@ import {BadRequestError, UnauthorizedError, ForbiddenError, NotFoundError, Envir
 import {config} from "./config.js";
 import { deleteAllUsers, getUser } from "./db/queries/users.js";
 import { getChirp } from "./db/queries/chirps.js";
-import { checkPasswordHash } from "./auth.js";
+import {storeRefreshToken} from "./db/queries/refreshTokens.js";
+import { checkPasswordHash, makeJWT, makeRefreshToken } from "./auth.js";
 
 // Middleware //
 
@@ -67,8 +68,12 @@ export async function middlewareGetUser(req: Request, res: Response) {
         const isValid = await checkPasswordHash(req.body.password, hashedPassword)
         if (!isValid) throw new BadRequestError("invalid password");
 
+        const token = makeJWT(user.id, 3600, config.api.jwtSecret);
+        const refreshToken = makeRefreshToken();
+        await storeRefreshToken(refreshToken, user.id, 3600 * 24 * 60);
+
         const { hashed_password, ...userResponse } = user;
-        res.status(200).json(userResponse);
+        res.status(200).json({...userResponse, token, refreshToken});
     } catch {
         throw new UnauthorizedError("incorrect email or password");
     }
