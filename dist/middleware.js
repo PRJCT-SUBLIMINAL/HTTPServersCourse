@@ -1,7 +1,7 @@
 import { BadRequestError, UnauthorizedError, ForbiddenError, NotFoundError } from "./classes.js";
 import { config } from "./config.js";
 import { deleteAllUsers, getUser, updateUser } from "./db/queries/users.js";
-import { getChirp } from "./db/queries/chirps.js";
+import { getChirp, deleteChirp } from "./db/queries/chirps.js";
 import { storeRefreshToken, findRefreshToken, getUserFromRefreshToken, revokeRefreshToken } from "./db/queries/refreshTokens.js";
 import { hashPassword, checkPasswordHash, makeJWT, makeRefreshToken, getBearerToken, validateJWT } from "./auth.js";
 // Middleware //
@@ -49,6 +49,26 @@ export async function middlewareGetChirp(req, res) {
     if (!chirp)
         throw new NotFoundError("Chirp not found!");
     res.status(200).json(chirp);
+}
+export async function middlewareDeleteChirp(req, res) {
+    if (!req.params)
+        throw new BadRequestError("No chirp ID?");
+    const chirpId = req.params.chirpId;
+    if (!chirpId)
+        return;
+    const accessToken = getBearerToken(req);
+    if (!accessToken)
+        throw new UnauthorizedError("Can not find token.");
+    const userId = validateJWT(accessToken, config.api.jwtSecret);
+    const chirp = await getChirp(chirpId);
+    if (!chirp)
+        throw new NotFoundError("Chirp not found");
+    if (chirp.userId !== userId)
+        throw new ForbiddenError("Chirp does not belong to this user.");
+    const deletedChirp = await deleteChirp(chirpId);
+    if (!deletedChirp)
+        throw new NotFoundError("Chirp not found.");
+    res.status(204).send();
 }
 export async function middlewareGetUser(req, res) {
     try {

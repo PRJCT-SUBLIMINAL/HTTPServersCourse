@@ -16,13 +16,14 @@ import {
     middlewareLogResponses,
     middlewareErrorHandler,
     middlewareGetChirp,
+    middlewareDeleteChirp,
     middlewareGetUser,
     middlewareRefreshUser,
     middlewareRevokeUser,
     middlewareUpdateUser
 } from "./middleware.js";
 
-import {BadRequestError, UnauthorizedError, ForbiddenError, NotFoundError} from "./classes.js";
+import {BadRequestError} from "./classes.js";
 import {config} from "./config.js";
 
 // Init //
@@ -105,6 +106,8 @@ app.get("/api/chirps", async (req: Request, res: Response)=>{
 app.get("/api/chirps/:chirpId", async (req: Request, res: Response, next: NextFunction)=>{
     Promise.resolve(middlewareGetChirp(req, res)).catch(next);
 });
+
+app.delete("/api/chirps/:chirpId", middlewareDeleteChirp);
 
 // Users
 
