@@ -61,3 +61,10 @@ export function makeRefreshToken(): string {
     const hexString = randomBytes.toString("hex");
     return hexString;
 }
+
+export function getAPIKey(req: Request): string {
+    const apiKey = req.get("Authorization");
+    if (!apiKey) throw new UnauthorizedError("Failed to authorize");
+    const strippedAPIKey = apiKey.replace("ApiKey", "").trim();
+    return strippedAPIKey;
+}

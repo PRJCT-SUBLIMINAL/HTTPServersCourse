@@ -16,7 +16,8 @@ export const config = {
         fileServerHits: 0,
         profaneWords: ["kerfuffle", "sharbert", "fornax"],
         platform: envOrThrow("PLATFORM"),
-        jwtSecret: envOrThrow("JWT_SECRET")
+        jwtSecret: envOrThrow("JWT_SECRET"),
+        polkaKey: envOrThrow("POLKA_KEY")
     } // Ensures the API config is matching structure
 };
 // TypeScript automatically infers the narrowest, read-only types when using a `as const` assertion on the object literal.

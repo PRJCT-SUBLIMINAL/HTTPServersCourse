@@ -25,3 +25,9 @@ export async function getAllChirps() {
     const result = await db.select().from(chirps).orderBy(asc(chirps.createdAt));
     return result;
 }
+
+// GET USERS CHIRPS //
+export async function getUserChirps(userId: string) {
+    const result = await db.select().from(chirps).where(eq(chirps.userId, userId));
+    return result;
+}

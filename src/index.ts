@@ -6,7 +6,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 
 // My Imports //
 import {hashPassword, getBearerToken, validateJWT} from "./auth.js";
-import {createChirp, getAllChirps} from "./db/queries/chirps.js";
+import {createChirp, getAllChirps, getUserChirps} from "./db/queries/chirps.js";
 import {createUser} from "./db/queries/users.js";
 
 import {
@@ -20,7 +20,8 @@ import {
     middlewareGetUser,
     middlewareRefreshUser,
     middlewareRevokeUser,
-    middlewareUpdateUser
+    middlewareUpdateUser,
+    middlewareUpgradeUser
 } from "./middleware.js";
 
 import {BadRequestError} from "./classes.js";
@@ -94,11 +95,32 @@ app.post("/api/chirps", async (req: Request, res: Response)=>{
 });
 
 app.get("/api/chirps", async (req: Request, res: Response)=>{
-    const chirps = await getAllChirps();
+    let chirps = [];
+    if (req.query.authorId) {
+        let authorId = "";
+        let authorIdQuery = req.query.authorId;
+        if (typeof authorIdQuery === "string") {
+            authorId = authorIdQuery;
+        }
+
+        chirps = await getUserChirps(authorId);
+
+    } else {
+
+        chirps = await getAllChirps();
+
+    }
+
     if (!chirps) {
         res.status(400).json({ error: "Something went wrong" });
         return;
     };
+
+    if (!req.query.sort || req.query.sort === "asc") {
+        chirps.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+    } else if (req.query.sort === "desc") {
+        chirps.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    }
 
     res.status(200).json(chirps);
 });
@@ -144,6 +166,8 @@ app.post(("/api/login"), middlewareGetUser);
 app.post("/api/refresh", middlewareRefreshUser);
 
 app.post("/api/revoke", middlewareRevokeUser);
+
+app.post("/api/polka/webhooks", middlewareUpgradeUser);
 
 app.use(middlewareErrorHandler);
 

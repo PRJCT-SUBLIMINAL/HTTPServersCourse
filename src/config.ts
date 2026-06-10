@@ -14,6 +14,7 @@ type APIConfig = {
     profaneWords: Array<string>;
     platform: string;
     jwtSecret: string;
+    polkaKey: string;
 };
 
 // Note: Hand-written type definitions (DBConfig) are omitted.
@@ -26,7 +27,8 @@ export const config = {
         fileServerHits: 0,
         profaneWords: ["kerfuffle", "sharbert", "fornax"],
         platform: envOrThrow("PLATFORM"),
-        jwtSecret: envOrThrow("JWT_SECRET")
+        jwtSecret: envOrThrow("JWT_SECRET"),
+        polkaKey: envOrThrow("POLKA_KEY")
     } satisfies APIConfig // Ensures the API config is matching structure
 } as const;
 // TypeScript automatically infers the narrowest, read-only types when using a `as const` assertion on the object literal.

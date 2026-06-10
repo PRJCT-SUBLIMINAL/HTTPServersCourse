@@ -1,9 +1,9 @@
 import { BadRequestError, UnauthorizedError, ForbiddenError, NotFoundError } from "./classes.js";
 import { config } from "./config.js";
-import { deleteAllUsers, getUser, updateUser } from "./db/queries/users.js";
+import { deleteAllUsers, getUser, updateUser, upgradeUser } from "./db/queries/users.js";
 import { getChirp, deleteChirp } from "./db/queries/chirps.js";
 import { storeRefreshToken, findRefreshToken, getUserFromRefreshToken, revokeRefreshToken } from "./db/queries/refreshTokens.js";
-import { hashPassword, checkPasswordHash, makeJWT, makeRefreshToken, getBearerToken, validateJWT } from "./auth.js";
+import { hashPassword, checkPasswordHash, makeJWT, makeRefreshToken, getBearerToken, validateJWT, getAPIKey } from "./auth.js";
 // Middleware //
 export async function middlewareLogResponses(req, res, next) {
     res.on("finish", () => {
@@ -127,6 +127,20 @@ export async function middlewareUpdateUser(req, res) {
         throw new UnauthorizedError("Cannot update user.");
     const { hashed_password, ...userResponse } = updatedUser;
     res.status(200).json(userResponse);
+}
+export async function middlewareUpgradeUser(req, res) {
+    if (req.body.event !== "user.upgraded") {
+        res.status(204).send();
+        return;
+    }
+    const apiKey = getAPIKey(req);
+    if (apiKey !== config.api.polkaKey)
+        throw new UnauthorizedError("Polka key does not match.");
+    const userId = req.body.data.userId;
+    const upgradedUser = await upgradeUser(userId);
+    if (!upgradedUser)
+        throw new NotFoundError("User not found.");
+    res.status(204).send();
 }
 export const middlewareErrorHandler = (err, req, res, next) => {
     console.log(err);
