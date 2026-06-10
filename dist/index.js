@@ -6,7 +6,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import { hashPassword, getBearerToken, validateJWT } from "./auth.js";
 import { createChirp, getAllChirps } from "./db/queries/chirps.js";
 import { createUser } from "./db/queries/users.js";
-import { middlewareMetricsInc, middlewareLogMetrics, middlewareResetMetrics, middlewareLogResponses, middlewareErrorHandler, middlewareGetChirp, middlewareGetUser, middlewareRefreshUser, middlewareRevokeUser } from "./middleware.js";
+import { middlewareMetricsInc, middlewareLogMetrics, middlewareResetMetrics, middlewareLogResponses, middlewareErrorHandler, middlewareGetChirp, middlewareGetUser, middlewareRefreshUser, middlewareRevokeUser, middlewareUpdateUser } from "./middleware.js";
 import { BadRequestError } from "./classes.js";
 import { config } from "./config.js";
 // Init //
@@ -105,6 +105,7 @@ app.post("/api/users", async (req, res) => {
     const { hashed_password, ...userResponse } = user; // This is how to strip a field from an object.
     res.status(201).json(userResponse); // Send the stripped object back to the client
 });
+app.put("/api/users", middlewareUpdateUser);
 app.post(("/api/login"), middlewareGetUser);
 app.post("/api/refresh", middlewareRefreshUser);
 app.post("/api/revoke", middlewareRevokeUser);

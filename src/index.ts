@@ -18,7 +18,8 @@ import {
     middlewareGetChirp,
     middlewareGetUser,
     middlewareRefreshUser,
-    middlewareRevokeUser
+    middlewareRevokeUser,
+    middlewareUpdateUser
 } from "./middleware.js";
 
 import {BadRequestError, UnauthorizedError, ForbiddenError, NotFoundError} from "./classes.js";
@@ -132,6 +133,8 @@ app.post("/api/users", async (req: Request, res: Response)=>{
 
     res.status(201).json(userResponse); // Send the stripped object back to the client
 });
+
+app.put("/api/users", middlewareUpdateUser);
 
 app.post(("/api/login"), middlewareGetUser);
 

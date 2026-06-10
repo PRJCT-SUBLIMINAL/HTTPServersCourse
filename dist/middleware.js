@@ -1,9 +1,9 @@
 import { BadRequestError, UnauthorizedError, ForbiddenError, NotFoundError } from "./classes.js";
 import { config } from "./config.js";
-import { deleteAllUsers, getUser } from "./db/queries/users.js";
+import { deleteAllUsers, getUser, updateUser } from "./db/queries/users.js";
 import { getChirp } from "./db/queries/chirps.js";
 import { storeRefreshToken, findRefreshToken, getUserFromRefreshToken, revokeRefreshToken } from "./db/queries/refreshTokens.js";
-import { checkPasswordHash, makeJWT, makeRefreshToken, getBearerToken } from "./auth.js";
+import { hashPassword, checkPasswordHash, makeJWT, makeRefreshToken, getBearerToken, validateJWT } from "./auth.js";
 // Middleware //
 export async function middlewareLogResponses(req, res, next) {
     res.on("finish", () => {
@@ -90,6 +90,23 @@ export async function middlewareRevokeUser(req, res) {
     if (!token)
         throw new UnauthorizedError("Unauthorized user.");
     res.status(204).send();
+}
+export async function middlewareUpdateUser(req, res) {
+    const accessToken = getBearerToken(req);
+    if (!accessToken)
+        throw new UnauthorizedError("Unable to find access token.");
+    const userId = validateJWT(accessToken, config.api.jwtSecret);
+    if (!userId)
+        throw new UnauthorizedError("Unable to validate access token.");
+    if (!req.body || !req.body.email || !req.body.password)
+        throw new UnauthorizedError("No email or password provided.");
+    const email = req.body.email;
+    const passwordHash = await hashPassword(req.body.password);
+    const updatedUser = await updateUser(userId, email, passwordHash);
+    if (!updatedUser)
+        throw new UnauthorizedError("Cannot update user.");
+    const { hashed_password, ...userResponse } = updatedUser;
+    res.status(200).json(userResponse);
 }
 export const middlewareErrorHandler = (err, req, res, next) => {
     console.log(err);

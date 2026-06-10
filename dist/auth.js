@@ -5,7 +5,7 @@ import { UnauthorizedError } from "./classes.js";
 export async function hashPassword(password) {
     const hashedPassword = await argon2.hash(password);
     if (!hashedPassword)
-        throw new Error("Can not hash password");
+        throw new UnauthorizedError("Can not hash password");
     return hashedPassword;
 }
 export async function checkPasswordHash(password, hash) {
@@ -14,7 +14,7 @@ export async function checkPasswordHash(password, hash) {
         return isVerified;
     }
     catch {
-        throw new Error("Failed to check password hash!?");
+        throw new UnauthorizedError("Failed to check password hash!?");
     }
 }
 export function makeJWT(userId, expiresIn, secret) {
@@ -37,13 +37,13 @@ export function validateJWT(tokenString, secret) {
         throw new UnauthorizedError("Unable to validate password");
     }
     if (!decodedPassword.sub)
-        throw new Error("No user ID in token");
+        throw new UnauthorizedError("No user ID in token");
     return decodedPassword.sub;
 }
 export function getBearerToken(req) {
     const token = req.get("Authorization");
     if (!token)
-        throw new Error("Failed to authorize");
+        throw new UnauthorizedError("Failed to authorize");
     const strippedToken = token.replace("Bearer ", "").trim();
     return strippedToken;
 }
